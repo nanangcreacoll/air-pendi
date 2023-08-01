@@ -5,35 +5,33 @@
 #include <DallasTemperature.h>
 #include <SoftwareSerial.h>
 
-// Pin Relay
+// Pin Relay serta Urutan Kerja
 const int relayPins[] = { 30, 25, 32, 22, 26, 23, 33, 27, 28, 32, 22, 26, 23, 33, 27, 29 };
 const int numRelays = sizeof(relayPins) / sizeof(relayPins[0]);
-
+const int relayPinsKuras[] = { 25, 22, 26, 23, 33, 27, 28 };
+const int numRelaysKuras = sizeof(relayPinsKuras) / sizeof(relayPinsKuras[0]);
 const int resetPin = 4;
 const int allRelayPin = 5;
 
-// Waktu Delay
-// const unsigned long relayDelays[] = {80000 , 80000, 120000, 80000, 180000, 80000, 120000, 80000, 80000, 120000, 80000, 180000, 80000, 120000, 80000, 80000};
-const unsigned long relayDelays[] = {8000 , 8000, 12000, 8000, 18000, 8000, 12000, 8000, 8000, 12000, 8000, 18000, 8000, 12000, 8000, 8000};
-// Sensor TDS dan Suhu DS18B20
+// Waktu Delay Kerja
+const unsigned long relayDelays[] = {40000 , 40000, 70000, 30000, 100000, 30000, 70000, 30000, 30000, 70000, 30000, 100000, 30000, 70000, 30000, 30000};
+//Waktu Delay  Uji Alat
+//const unsigned long relayDelays[] = {8000 , 8000, 12000, 8000, 18000, 8000, 12000, 8000, 8000, 12000, 8000, 18000, 8000, 12000, 8000, 8000};
+
+// Definiai Pin LCD, Sensor TDS dan Suhu DS18B20
 const int tdsTank1Pin = A0;   // sensor suhu DS18B20 tangki 5 putih
 const int tdsTank5Pin = A1;   // sensor suhu DS18B20 tangki 1 ungu
 const int tempTank1Pin = A2;  // sensor suhu DS18B20 tangki 5 biru
 const int tempTank5Pin = A3;  // sensor suhu DS18B20 tangki 1 hijau
 const int phTank1Pin = A5;    // sensor ph tangki 1
 const int phTank5Pin = A4;    // sensor ph tangki 5
-
-// LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4);
-
-// OneWire dan DallasTemperature
 OneWire oneWire1(tempTank1Pin);
 OneWire oneWire5(tempTank5Pin);
 DallasTemperature sensors1(&oneWire1);
 DallasTemperature sensors5(&oneWire5);
 SoftwareSerial espSerial(2, 3);
 float readph(int pin) {
-  // Membaca nilai pH
   float analogValue = analogRead(pin);
   return analogValue;
 }
@@ -58,17 +56,17 @@ void setup() {
   // Inisialisasi sensor pH
   pinMode(phTank1Pin, INPUT);
   pinMode(phTank5Pin, INPUT);
-
+  // Inisialisasi Toggle Button
   pinMode(resetPin, INPUT_PULLUP);
   pinMode(allRelayPin, INPUT_PULLUP);
 }
 
 void loop() {
+  //data sensor
   float ph1 = readph(phTank1Pin);
   float phValue1 = map(ph1, 0, 1023, 0, 18.5);
   float ph5 = readph(phTank5Pin);
   float phValue5 = map(ph5, 0, 1023, 0, 20);
-
   float tdsTank1 = readTDS(tdsTank1Pin);
   float tdsTank5 = readTDS(tdsTank5Pin);
   float tempTank1 = readTemperature(tempTank1Pin, sensors1);
@@ -142,6 +140,7 @@ void loop() {
     tempTank1 = readTemperature(tempTank1Pin, sensors1);
     tempTank5 = readTemperature(tempTank5Pin, sensors5);
 
+    // Mengirimkan Data ke Blynk
     if (espSerial.available() == 0) {
       String sdata;
       sdata = sdata + tdsTank1 + "," + tdsTank5 + "," + tempTank1 + "," + tempTank5 + "," + phValue1 + "," + phValue5 + "," + jumlahProses;
@@ -149,7 +148,7 @@ void loop() {
       Serial.println(sdata);
       sdata = "";
     }
-
+    //Tampilan di SeriL
     Serial.print("TDS Tangki 1: ");
     Serial.println(tdsTank1);
     Serial.print("TDS Tangki 5: ");
@@ -213,18 +212,21 @@ void loop() {
     }
 
     if (digitalRead(allRelayPin) == LOW) {
+      for (int i = 0; i < numRelays; i++) {
+        digitalWrite(relayPins[i], HIGH);
+      }
       Serial.println("Proses Kuras!");
       lcd.clear();
       lcd.setCursor(2, 0);
       lcd.print("Proses Kuras!");
       while (digitalRead(allRelayPin) == LOW) {
-        for (int i = 1; i < numRelays; i++) {
-          digitalWrite(relayPins[i], LOW);
+        for (int i = 0; i < numRelaysKuras; i++) {
+          digitalWrite(relayPinsKuras[i], LOW);
         }
       }
       delay(1000);
-      for (int i = 0; i < numRelays; i++) {
-        digitalWrite(relayPins[i], HIGH);
+      for (int i = 0; i < numRelaysKuras; i++) {
+        digitalWrite(relayPinsKuras[i], HIGH);
       }
       lcd.clear();
       lcd.setCursor(2, 0);
